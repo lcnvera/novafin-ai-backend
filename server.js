@@ -16,10 +16,6 @@ app.use("/api/", rateLimit({
   legacyHeaders: false
 }));
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
 const instructions = `
 Você é a NovaFin Intelligence, assistente educativa da NovaFin AI.
 Responda em português do Brasil, com acolhimento, clareza e paciência.
@@ -44,6 +40,12 @@ app.get("/", (_req, res) => {
 
 app.post("/api/chat", async (req, res) => {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(503).json({
+        error: "A integração com a IA ainda não foi configurada."
+      });
+    }
+
     const messages = req.body?.messages;
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -73,8 +75,12 @@ app.post("/api/chat", async (req, res) => {
       });
     }
 
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY
+    });
+
     const response = await openai.responses.create({
-      model: process.env.OPENAI_MODEL,
+      model: process.env.OPENAI_MODEL || "gpt-6-astra",
       instructions,
       input: safeMessages,
       max_output_tokens: 700
